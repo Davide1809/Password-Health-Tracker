@@ -106,7 +106,7 @@ No plaintext passwords (only hashed)
 
 Frontend Implementation Details (React)
 
-🔑 Login.jsx
+**🔑 Login.jsx**
 	•	Collects email & password
 	•	Sends POST request including credentials:
 fetch("http://127.0.0.1:5001/api/login", {
@@ -121,7 +121,7 @@ fetch("http://127.0.0.1:5001/api/login", {
 
 ⸻
 
-Testing Summary
+**Testing Summary**
 	•	✔ Valid login → success + redirect
 	•	✔ Wrong password → error
 	•	✔ Wrong email → same generic error
@@ -130,13 +130,13 @@ Testing Summary
 
 ⸻
 
-AI Tools Used
+# AI Tools Used
 
-GitHub Copilot
+**GitHub Copilot**
 	•	Assisted React form logic
 	•	Helped auto-generate JSX input handling
 
-ChatGPT
+**ChatGPT**
 	•	Designed backend login flow
 	•	Implemented session-based authentication
 	•	Helped debug CORS credential issues
@@ -144,12 +144,12 @@ ChatGPT
 
 ⸻
 
-How to Run the Login Feature (Backend)
+**How to Run the Login Feature (Backend)**
 cd backend
 source .venv/bin/activate
 python app.py
 
-How to Run the Frontend (React)
+**How to Run the Frontend (React)**
 cd frontend
 npm install
 npm start
@@ -161,20 +161,20 @@ Implement a password strength analyzer component that allows users to input a pa
 
 **Status:** Completed
 
-Components Added/Modified:
+**Components Added/Modified:**
 	•	PasswordAnalyzer.jsx – Component to input and analyze password strength.
 	•	passwordStrength.js – Utility functions to calculate password strength.
 	•	App.js – Added route /analyze to render the PasswordAnalyzer component.
 	•	App.test.js – Updated tests to verify correct rendering of routes including the password analyzer.
 
-Acceptance Criteria:
+**Acceptance Criteria:**
 	1.	Users can navigate to /analyze.
 	2.	Users can input a password and click “Analyze.”
 	3.	Password strength is evaluated and displayed (Weak / Medium / Strong).
 	4.	Component renders correctly without breaking other routes.
 	5.	All unit and integration tests pass.
 
-Testing:
+**Testing:**
 	•	Used React Testing Library to ensure routing and component rendering works.
 	•	Verified password strength logic with passwordStrength.test.js.
 	•	All tests are passing as of this commit.
