@@ -7,20 +7,35 @@ from flask_login import LoginManager, UserMixin, login_user, login_required, log
 from bson.objectid import ObjectId
 
 app = Flask(__name__)
-app.secret_key = os.getenv("SECRET_KEY", "supersecretkey")
+# Set a secret key from environment variables or use a default
+app.secret_key = os.getenv("SECRET_KEY", "supersecretkey") 
 CORS(app, supports_credentials=True)
 
-# Login manager
+# Login manager setup
 login_manager = LoginManager()
 login_manager.init_app(app)
 
-# MongoDB
-MONGO_URI = os.getenv("MONGO_URI", "mongodb://mongo:27017/myapp")
-client = MongoClient(MONGO_URI)
-db = client["myapp"]
-users = db["users"]
+# MongoDB connection setup
+# Use the MONGO_URI environment variable set in docker-compose.yml
+# The default is a placeholder URI that works if the variable is not set.
+MONGO_URI = os.getenv("MONGO_URI", "mongodb://localhost:27017/db_placeholder")
+try:
+    # Initialize the client using the correct URI
+    client = MongoClient(MONGO_URI)
+    client.admin.command('ping') # Test connection
 
-# User class
+    # Dynamically select the database name from the connection string
+    # Assumes the URI is in the format '.../db_name'
+    db_name = MONGO_URI.split('/')[-1]
+    db = client[db_name]
+    users = db["users"]
+    print(f"Successfully connected to MongoDB database: {db_name}")
+except Exception as e:
+    # Log the exact error if the connection fails, which is crucial for debugging
+    print(f"Error connecting to MongoDB. Check if the 'mongo' service is running and healthy: {e}")
+    # For local development with Docker Compose, the app may crash here if the DB is unavailable
+
+# User class for Flask-Login
 class User(UserMixin):
     def __init__(self, user_doc):
         self.id = str(user_doc["_id"])
@@ -28,9 +43,12 @@ class User(UserMixin):
 
 @login_manager.user_loader
 def load_user(user_id):
-    user_doc = users.find_one({"_id": ObjectId(user_id)})
-    if user_doc:
-        return User(user_doc)
+    try:
+        user_doc = users.find_one({"_id": ObjectId(user_id)})
+        if user_doc:
+            return User(user_doc)
+    except Exception as e:
+        print(f"Error loading user: {e}")
     return None
 
 
@@ -67,7 +85,12 @@ def signup():
 
     hashed_pw = generate_password_hash(password)
     result = users.insert_one({"email": email, "password": hashed_pw})
+    # If the application uses session management, a successful signup usually logs the user in immediately
+    user = User(users.find_one({"_id": result.inserted_id}))
+    login_user(user)
+
     return jsonify({"status": "success", "message": "Account created", "userId": str(result.inserted_id)}), 201
+
 @app.post("/api/login")
 def login():
     data = request.get_json()
@@ -93,10 +116,16 @@ def login():
 def logout():
     logout_user()
     return jsonify({"status": "success", "message": "Logged out"}), 200
+
 @app.get("/api/dashboard")
 @login_required
 def dashboard_data():
     return jsonify({"status": "success", "message": f"Welcome {current_user.email}!"}), 200
 
+# --- SERVER STARTUP ---
+
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5001)
+    # Get the PORT environment variable, defaulting to 5001 to match docker-compose configuration
+    port = int(os.environ.get("PORT", 5001)) 
+    # Bind to '0.0.0.0' for accessibility within the Docker network
+    app.run(host="0.0.0.0", port=port, debug=False)
