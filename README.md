@@ -50,7 +50,7 @@ Password Health Tracker is a web application designed to help users monitor and 
 
 ### Setup Instructions for Signup Feature
 1. **Backend Setup (Flask + MongoDB)**
-```bash
+
 cd backend
 python3 -m venv .venv
 source .venv/bin/activate
