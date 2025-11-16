@@ -56,3 +56,100 @@ python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
 python app.py
+
+# ✔ Story 2: Login Feature
+
+**User Story:**  
+_As a returning user, I want to log in so that I can access my personal dashboard._
+
+**Status:** Completed ✅
+
+---
+
+## Functionality
+- Users log in with their registered email and password  
+- Password verification uses secure hashing (`check_password_hash`)  
+- Flask-Login creates a session (`login_user()`)  
+- Redirects user to dashboard after successful login  
+- Invalid login attempts return a **generic error**  
+- Protected API endpoints require authentication using `@login_required`
+
+---
+
+## Backend Implementation Details (Flask + MongoDB)
+
+### 🔐 Login Route
+**POST `/api/login`**  
+- Validates email and password  
+- Fetches user from MongoDB  
+- Verifies hashed password  
+- Creates authenticated user session  
+- Returns JSON response  
+
+### 🔐 Session Management
+Using **Flask-Login**:
+- `login_user()` — logs user in  
+- `current_user` — access logged-in user  
+- `logout_user()` — logs user out  
+- `@login_required` — restricts protected routes  
+
+### 🛡 Security Enhancements
+- Cookies enabled with:
+  ```python
+  CORS(app, supports_credentials=True)
+
+No plaintext passwords (only hashed)
+	•	Generic login error prevents attacker email enumeration
+	•	Session cookies managed securely by Flask
+
+⸻
+
+Frontend Implementation Details (React)
+
+🔑 Login.jsx
+	•	Collects email & password
+	•	Sends POST request including credentials:
+fetch("http://127.0.0.1:5001/api/login", {
+  method: "POST",
+  credentials: "include",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ email, password }),
+});
+
+	Shows success or error messages
+	•	Redirects to /dashboard on success
+
+⸻
+
+Testing Summary
+	•	✔ Valid login → success + redirect
+	•	✔ Wrong password → error
+	•	✔ Wrong email → same generic error
+	•	✔ Attempt to access /dashboard without login → blocked
+	•	✔ Refresh after login → session persists
+
+⸻
+
+AI Tools Used
+
+GitHub Copilot
+	•	Assisted React form logic
+	•	Helped auto-generate JSX input handling
+
+ChatGPT
+	•	Designed backend login flow
+	•	Implemented session-based authentication
+	•	Helped debug CORS credential issues
+	•	Ensured best practices for password security
+
+⸻
+
+How to Run the Login Feature (Backend)
+cd backend
+source .venv/bin/activate
+python app.py
+
+How to Run the Frontend (React)
+cd frontend
+npm install
+npm start
