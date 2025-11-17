@@ -179,65 +179,67 @@ Implement a password strength analyzer component that allows users to input a pa
 	•	Verified password strength logic with passwordStrength.test.js.
 	•	All tests are passing as of this commit.
 
-Documentazione di Deployment
-# 📦 Containerizzazione (Docker)
-L'applicazione è suddivisa in due servizi containerizzati: Frontend (React + Nginx) e Backend (Flask + Gunicorn).
+# 📜 Deployment Documentation
+# 📦 Containerization (Docker)
 
-1. Prerequisiti
+The application is divided into two containerized services: Frontend (React + Nginx) and Backend (Flask + Gunicorn).
 
-Docker installato.
+1. Prerequisites
 
-L'ID del tuo progetto Google Cloud (PROJECT_ID - es. password-health-tracker-1).
+Docker installed.
 
-2. Immagini Docker
+Your Google Cloud Project ID (PROJECT_ID - e.g., password-health-tracker-1).
 
-Per eseguire la containerizzazione, usa i Dockerfile presenti nelle rispettive cartelle.
+2. Docker Images
 
-Servizio	Percorso Dockerfile	Porta Esposta	Note
-Backend	backend/Dockerfile	5000	Esegue Flask con Gunicorn.
-Frontend	frontend/Dockerfile	80	Esegue l'applicazione React servita da Nginx.
-3. Build delle Immagini
+To perform containerization, use the Dockerfiles located in their respective folders.
 
-Esegui questi comandi dalla directory radice del progetto per costruire le immagini Docker e taggarle per Google Container Registry (GCR):
+Service	Dockerfile Path	Exposed Port	Notes
+Backend	backend/Dockerfile	5000	Runs Flask with Gunicorn.
+Frontend	frontend/Dockerfile	80	Runs the React application served by Nginx.
+3. Image Build
+
+Run these commands from the project root directory to build the Docker images and tag them for Google Container Registry (GCR):
 
 Bash
-PROJECT_ID="YOUR_PROJECT_ID" # Sostituisci con il tuo ID Progetto
+PROJECT_ID="YOUR_PROJECT_ID" # Replace with your Project ID
 
-# 1. Build del Backend (Python/Flask)
+# 1. Build the Backend (Python/Flask)
 echo "Building Backend Image..."
 docker build --platform linux/amd64 -t gcr.io/${PROJECT_ID}/password-backend:v1 ./backend
 
-# 2. Build del Frontend (React/Nginx)
+# 2. Build the Frontend (React/Nginx)
 echo "Building Frontend Image..."
 docker build --platform linux/amd64 -t gcr.io/${PROJECT_ID}/password-frontend:v1 ./frontend
-4. Push su Google Container Registry
+4. Push to Google Container Registry
 
-Dopo la build, devi caricare le immagini su GCR affinché Cloud Run possa accedervi:
+After the build, you must upload the images to GCR so that Cloud Run can access them:
 
 Bash
-# Autenticazione a Google Cloud (se necessario)
+# Authenticate to Google Cloud (if necessary)
 gcloud auth configure-docker
 
-# Push del Backend
+# Push the Backend
 docker push gcr.io/${PROJECT_ID}/password-backend:v1
 
-# Push del Frontend
+# Push the Frontend
 docker push gcr.io/${PROJECT_ID}/password-frontend:v1
-# 🚀 Deployment su Google Cloud Run
-Cloud Run viene utilizzato per ospitare i microservizi. Il Frontend funge da Proxy Inverso (Reverse Proxy) grazie alla configurazione Nginx, indirizzando le richieste /api/* al servizio Backend.
+# 🚀 Deployment on Google Cloud Run
 
-1. Prerequisiti di Cloud Run
+Cloud Run is used to host the microservices. The Frontend acts as a Reverse Proxy thanks to the Nginx configuration, routing /api/* requests to the Backend service.
 
-Google Cloud CLI (gcloud) installato e configurato.
+1. Cloud Run Prerequisites
 
-Variabile d'ambiente MONGO_URI disponibile.
+Google Cloud CLI (gcloud) installed and configured.
 
-2. Deployment del Servizio Backend (Flask)
+The environment variable MONGO_URI must be available.
 
-Il backend necessita della variabile d'ambiente che punta al tuo cluster MongoDB.
+2. Deploying the Backend Service (Flask)
+
+The backend requires the environment variable that points to your MongoDB cluster.
 
 Bash
-# Sostituisci con il tuo valore effettivo
+# Replace with your actual value
 MONGO_URI="mongodb+srv://..." 
 
 echo "Deploying Backend Service..."
@@ -248,17 +250,17 @@ gcloud run deploy password-backend \
     --memory 512Mi \
     --env-vars=MONGO_URI="${MONGO_URI}" \
     --allow-unauthenticated 
-    # Note: L'autenticazione è gestita a livello applicativo, non da Cloud Run IAM.
-3. Deployment del Servizio Frontend (React + Nginx Proxy)
+    # Note: Authentication is managed at the application level, not by Cloud Run IAM.
+3. Deploying the Frontend Service (React + Nginx Proxy)
 
-Il frontend è il punto d'ingresso che ospita l'interfaccia utente React e inoltra le chiamate API al backend tramite la configurazione Nginx (proxy_pass).
+The frontend is the entry point that hosts the React user interface and forwards API calls to the backend via the Nginx configuration (proxy_pass).
 
 Bash
-# Recupera l'URL del Backend appena deployato (fondamentale per Nginx proxy_pass)
+# Retrieve the URL of the newly deployed Backend (critical for Nginx proxy_pass)
 BACKEND_URL=$(gcloud run services describe password-backend --region us-central1 --format='value(status.url)')
 
-# Nota: Il file frontend/nginx.conf DEVE essere stato aggiornato 
-# con l'URL del backend: set $backend_url "BACKEND_URL";
+# Note: The frontend/nginx.conf file MUST have been updated 
+# with the backend URL: set $backend_url "BACKEND_URL";
 
 echo "Deploying Frontend Service..."
 gcloud run deploy password-frontend \
@@ -266,12 +268,12 @@ gcloud run deploy password-frontend \
     --platform managed \
     --region us-central1 \
     --allow-unauthenticated
-4. Verifica Finale
+4. Final Verification
 
-Dopo il deployment del frontend, Cloud Run ti fornirà l'URL pubblico.
+After the frontend deployment, Cloud Run will provide you with the public URL.
 
-Accedi all'URL del servizio password-frontend.
+Access the password-frontend service URL.
 
-Registra un nuovo utente (Signup).
+Register a new user (Signup).
 
-Verifica che, dopo il login, tu venga reindirizzato alla Dashboard (il che conferma che il Reverse Proxy Nginx e la Sessione Cookie Cross-Site stanno funzionando correttamente).
+Verify that, after login, you are redirected to the Dashboard (which confirms that the Nginx Reverse Proxy and Cross-Site Cookie Session are working correctly).
