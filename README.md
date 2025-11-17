@@ -178,3 +178,100 @@ Implement a password strength analyzer component that allows users to input a pa
 	•	Used React Testing Library to ensure routing and component rendering works.
 	•	Verified password strength logic with passwordStrength.test.js.
 	•	All tests are passing as of this commit.
+
+Documentazione di Deployment
+# 📦 Containerizzazione (Docker)
+L'applicazione è suddivisa in due servizi containerizzati: Frontend (React + Nginx) e Backend (Flask + Gunicorn).
+
+1. Prerequisiti
+
+Docker installato.
+
+L'ID del tuo progetto Google Cloud (PROJECT_ID - es. password-health-tracker-1).
+
+2. Immagini Docker
+
+Per eseguire la containerizzazione, usa i Dockerfile presenti nelle rispettive cartelle.
+
+Servizio	Percorso Dockerfile	Porta Esposta	Note
+Backend	backend/Dockerfile	5000	Esegue Flask con Gunicorn.
+Frontend	frontend/Dockerfile	80	Esegue l'applicazione React servita da Nginx.
+3. Build delle Immagini
+
+Esegui questi comandi dalla directory radice del progetto per costruire le immagini Docker e taggarle per Google Container Registry (GCR):
+
+Bash
+PROJECT_ID="YOUR_PROJECT_ID" # Sostituisci con il tuo ID Progetto
+
+# 1. Build del Backend (Python/Flask)
+echo "Building Backend Image..."
+docker build --platform linux/amd64 -t gcr.io/${PROJECT_ID}/password-backend:v1 ./backend
+
+# 2. Build del Frontend (React/Nginx)
+echo "Building Frontend Image..."
+docker build --platform linux/amd64 -t gcr.io/${PROJECT_ID}/password-frontend:v1 ./frontend
+4. Push su Google Container Registry
+
+Dopo la build, devi caricare le immagini su GCR affinché Cloud Run possa accedervi:
+
+Bash
+# Autenticazione a Google Cloud (se necessario)
+gcloud auth configure-docker
+
+# Push del Backend
+docker push gcr.io/${PROJECT_ID}/password-backend:v1
+
+# Push del Frontend
+docker push gcr.io/${PROJECT_ID}/password-frontend:v1
+# 🚀 Deployment su Google Cloud Run
+Cloud Run viene utilizzato per ospitare i microservizi. Il Frontend funge da Proxy Inverso (Reverse Proxy) grazie alla configurazione Nginx, indirizzando le richieste /api/* al servizio Backend.
+
+1. Prerequisiti di Cloud Run
+
+Google Cloud CLI (gcloud) installato e configurato.
+
+Variabile d'ambiente MONGO_URI disponibile.
+
+2. Deployment del Servizio Backend (Flask)
+
+Il backend necessita della variabile d'ambiente che punta al tuo cluster MongoDB.
+
+Bash
+# Sostituisci con il tuo valore effettivo
+MONGO_URI="mongodb+srv://..." 
+
+echo "Deploying Backend Service..."
+gcloud run deploy password-backend \
+    --image gcr.io/${PROJECT_ID}/password-backend:v1 \
+    --platform managed \
+    --region us-central1 \
+    --memory 512Mi \
+    --env-vars=MONGO_URI="${MONGO_URI}" \
+    --allow-unauthenticated 
+    # Note: L'autenticazione è gestita a livello applicativo, non da Cloud Run IAM.
+3. Deployment del Servizio Frontend (React + Nginx Proxy)
+
+Il frontend è il punto d'ingresso che ospita l'interfaccia utente React e inoltra le chiamate API al backend tramite la configurazione Nginx (proxy_pass).
+
+Bash
+# Recupera l'URL del Backend appena deployato (fondamentale per Nginx proxy_pass)
+BACKEND_URL=$(gcloud run services describe password-backend --region us-central1 --format='value(status.url)')
+
+# Nota: Il file frontend/nginx.conf DEVE essere stato aggiornato 
+# con l'URL del backend: set $backend_url "BACKEND_URL";
+
+echo "Deploying Frontend Service..."
+gcloud run deploy password-frontend \
+    --image gcr.io/${PROJECT_ID}/password-frontend:v1 \
+    --platform managed \
+    --region us-central1 \
+    --allow-unauthenticated
+4. Verifica Finale
+
+Dopo il deployment del frontend, Cloud Run ti fornirà l'URL pubblico.
+
+Accedi all'URL del servizio password-frontend.
+
+Registra un nuovo utente (Signup).
+
+Verifica che, dopo il login, tu venga reindirizzato alla Dashboard (il che conferma che il Reverse Proxy Nginx e la Sessione Cookie Cross-Site stanno funzionando correttamente).
