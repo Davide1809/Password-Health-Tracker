@@ -154,6 +154,7 @@ const LoginLink = styled.p`
 const SignUp = () => {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
+    name: '',
     email: '',
     password: '',
     confirmPassword: ''
@@ -188,6 +189,13 @@ const SignUp = () => {
 
   const validateForm = () => {
     const newErrors = {};
+
+    // Name validation
+    if (!formData.name) {
+      newErrors.name = 'Name is required';
+    } else if (formData.name.length < 2) {
+      newErrors.name = 'Name must be at least 2 characters';
+    }
 
     // Email validation
     if (!formData.email) {
@@ -228,6 +236,7 @@ const SignUp = () => {
       await axios.post(
         `${process.env.REACT_APP_API_URL || 'http://localhost:5001'}/api/auth/register`,
         {
+          name: formData.name,
           email: formData.email,
           password: formData.password
         }
@@ -239,7 +248,7 @@ const SignUp = () => {
       });
 
       // Clear form
-      setFormData({ email: '', password: '', confirmPassword: '' });
+      setFormData({ name: '', email: '', password: '', confirmPassword: '' });
 
       // Redirect to login after 2 seconds
       setTimeout(() => {
@@ -271,6 +280,19 @@ const SignUp = () => {
         )}
 
         <Form onSubmit={handleSubmit}>
+          <FormGroup>
+            <Label htmlFor="name">Full Name</Label>
+            <Input
+              id="name"
+              type="text"
+              name="name"
+              value={formData.name}
+              onChange={handleChange}
+              placeholder="John Doe"
+            />
+            {errors.name && <ErrorMessage>{errors.name}</ErrorMessage>}
+          </FormGroup>
+
           <FormGroup>
             <Label htmlFor="email">Email Address</Label>
             <Input

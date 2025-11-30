@@ -79,9 +79,13 @@ def register():
         
         email = data.get('email', '').strip().lower()
         password = data.get('password', '')
+        name = data.get('name', '').strip()
         
         if not email or not password:
             return jsonify({'error': 'Email and password are required'}), 400
+        
+        if not name:
+            return jsonify({'error': 'Name is required'}), 400
         
         # Validate email format
         if not validate_email(email):
@@ -97,13 +101,14 @@ def register():
             return jsonify({'error': 'Email already registered'}), 409
         
         # Create new user
-        user = User(email=email, password_hash=User.hash_password(password))
+        user = User(email=email, password_hash=User.hash_password(password), name=name)
         result = mongo.db.users.insert_one(user.to_dict())
         
         return jsonify({
             'message': 'User registered successfully',
             'user_id': str(result.inserted_id),
-            'email': email
+            'email': email,
+            'name': name
         }), 201
     
     except Exception as e:
@@ -138,6 +143,7 @@ def login():
             {
                 'user_id': str(user_data['_id']),
                 'email': user_data['email'],
+                'name': user_data.get('name', 'User'),
                 'exp': datetime.utcnow() + timedelta(hours=24)
             },
             jwt_secret,
@@ -149,7 +155,8 @@ def login():
             'token': token,
             'user': {
                 'id': str(user_data['_id']),
-                'email': user_data['email']
+                'email': user_data['email'],
+                'name': user_data.get('name', 'User')
             },
             'expires_in': 86400  # 24 hours in seconds
         }), 200

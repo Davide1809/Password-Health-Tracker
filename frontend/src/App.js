@@ -48,10 +48,18 @@ function App() {
       setAuthToken(newToken);
     };
 
+    // Auto-logout when page is closed/tab is closed
+    const handleBeforeUnload = () => {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+    };
+
     window.addEventListener('storage', handleStorageChange);
+    window.addEventListener('beforeunload', handleBeforeUnload);
     
     return () => {
       window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('beforeunload', handleBeforeUnload);
     };
   }, [configLoaded]);
 

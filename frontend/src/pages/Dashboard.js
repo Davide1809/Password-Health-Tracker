@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import styled from 'styled-components';
+import { useNavigate } from 'react-router-dom';
 
 const Container = styled.div`
   max-width: 1200px;
@@ -44,9 +45,28 @@ const FeatureCard = styled(Card)`
 `;
 
 function Dashboard() {
+  const navigate = useNavigate();
+  const user = JSON.parse(localStorage.getItem('user') || '{}');
+  const userName = user.name || 'User';
+
+  useEffect(() => {
+    // Handle page close/tab close - auto logout
+    const handleBeforeUnload = () => {
+      // Clear auth tokens and user data
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, []);
+
   return (
     <Container>
-      <Title>Welcome to Password Health Tracker</Title>
+      <Title>Welcome, {userName}! 👋</Title>
       
       <Card>
         <h2>About This Application</h2>

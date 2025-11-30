@@ -9,13 +9,14 @@ import bcrypt
 class User:
     """User model representing a registered user in the system"""
     
-    def __init__(self, email, password_hash, created_at=None, updated_at=None, _id=None):
+    def __init__(self, email, password_hash, name=None, created_at=None, updated_at=None, _id=None):
         """
         Initialize User object
         
         Args:
             email (str): User's email address
             password_hash (str): Hashed password
+            name (str): User's full name
             created_at (datetime): Account creation timestamp
             updated_at (datetime): Last update timestamp
             _id (ObjectId): MongoDB document ID
@@ -23,6 +24,7 @@ class User:
         self._id = _id or ObjectId()
         self.email = email
         self.password_hash = password_hash
+        self.name = name or 'User'
         self.created_at = created_at or datetime.utcnow()
         self.updated_at = updated_at or datetime.utcnow()
     
@@ -60,6 +62,7 @@ class User:
             '_id': self._id,
             'email': self.email,
             'password_hash': self.password_hash,
+            'name': self.name,
             'created_at': self.created_at,
             'updated_at': self.updated_at
         }
@@ -70,6 +73,7 @@ class User:
         return cls(
             email=data.get('email'),
             password_hash=data.get('password_hash'),
+            name=data.get('name'),
             created_at=data.get('created_at'),
             updated_at=data.get('updated_at'),
             _id=data.get('_id')
