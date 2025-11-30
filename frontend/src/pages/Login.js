@@ -1,3 +1,4 @@
+import { getApiBase } from '../config';
 import React, { useState } from 'react';
 import styled from 'styled-components';
 import { useNavigate } from 'react-router-dom';
@@ -147,8 +148,10 @@ const Login = ({ onLoginSuccess }) => {
     }
 
     try {
+      // Load API base from runtime config.json with safe fallback
+      const apiBase = await getApiBase();
       const response = await axios.post(
-        `${process.env.REACT_APP_API_URL || 'http://localhost:5001'}/api/auth/login`,
+        `${apiBase}/api/auth/login`,
         {
           email: formData.email,
           password: formData.password
