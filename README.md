@@ -84,8 +84,8 @@ A web-based application designed to help users evaluate the strength and safety 
    ```
 
 4. **Access the application**
-   - Frontend: http://localhost:3000
-   - Backend API: http://localhost:5000
+  - Frontend: http://localhost:3001
+  - Backend API: http://localhost:5001
    - MongoDB: localhost:27017
 
 ### Local Development
@@ -373,6 +373,39 @@ terraform apply -var-file=terraform.tfvars
    - Enable audit logging
    - Implement rate limiting
    - Monitor for suspicious activity
+
+## 🤖 AI Tools & Usage
+
+This project used AI tools throughout development to increase productivity and generate drafts, with human review and testing for correctness. Examples of AI-assisted tasks:
+
+- **GitHub Copilot**: Used to scaffold components, suggest code snippets, and speed up repetitive code patterns (React components, Flask routes, utility functions).
+- **ChatGPT (OpenAI)**: Used for architectural suggestions, drafting commit messages, generating test scripts, and producing user-facing documentation (README updates, sprint reports).
+- **Automated prompts**: Small prompt templates were used to request unit-test ideas and to validate regex patterns and validation logic.
+
+Notes:
+- All AI-generated code was reviewed and tested locally and in Docker before committing.
+- Sensitive data, credentials, and secrets were never provided to AI tools.
+
+## 🧭 Development Workflow & Git Practices
+
+We follow professional Git workflows and branching strategies:
+
+- **Feature branches**: Create a branch for every new feature or fix. Example: `feature/authentication`.
+- **Meaningful commits**: Write descriptive commit messages and group logically related changes.
+- **Pull requests**: Open a PR to merge feature branches into `main`. Include description, testing steps, and reviewers.
+- **CI/CD**: Pushing to `main` triggers the GitHub Actions pipeline (build, tests, container image publish, optional deploy to Cloud Run).
+
+Tips:
+
+- To create and push a feature branch for doc changes:
+```bash
+git checkout -b feature/docs/readme-ai
+git add README.md
+git commit -m "docs: Update README with AI usage and workflow"
+git push origin feature/docs/readme-ai
+```
+
+After pushing, open a Pull Request on GitHub and request a reviewer.
 
 ## 🤝 Contributing
 
