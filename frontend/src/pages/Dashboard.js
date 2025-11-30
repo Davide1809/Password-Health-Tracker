@@ -1,6 +1,5 @@
 import React, { useEffect } from 'react';
 import styled from 'styled-components';
-import { useNavigate } from 'react-router-dom';
 
 const Container = styled.div`
   max-width: 1200px;
@@ -45,7 +44,6 @@ const FeatureCard = styled(Card)`
 `;
 
 function Dashboard() {
-  const navigate = useNavigate();
   const user = JSON.parse(localStorage.getItem('user') || '{}');
   const userName = user.name || 'User';
 
