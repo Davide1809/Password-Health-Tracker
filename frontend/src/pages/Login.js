@@ -1,5 +1,5 @@
-import { getApiBase } from '../config';
-import React, { useState } from 'react';
+import { getApiBase, getRuntimeConfig } from '../config';
+import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
@@ -126,6 +126,16 @@ const Login = ({ onLoginSuccess }) => {
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  // Ensure config is initialized when component mounts
+  useEffect(() => {
+    console.log('🔐 Login component mounted, ensuring config is ready...');
+    getRuntimeConfig().then(() => {
+      console.log('🔐 Config ready on Login component mount');
+    }).catch((err) => {
+      console.warn('🔐 Config initialization error (will use fallback):', err);
+    });
+  }, []);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
