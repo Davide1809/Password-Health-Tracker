@@ -144,6 +144,11 @@ def login():
             logger.warning('🔐 Login failed: missing email or password')
             return jsonify({'error': 'Invalid credentials'}), 401
         
+        # Check if mongo is available
+        if not mongo or not mongo.db:
+            logger.error('🔐 MongoDB connection not available')
+            return jsonify({'error': 'Database connection error'}), 500
+        
         # Find user by email
         user_data = mongo.db.users.find_one({'email': email})
         
