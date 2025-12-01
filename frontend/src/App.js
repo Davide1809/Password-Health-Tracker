@@ -28,10 +28,14 @@ function App() {
 
   useEffect(() => {
     // Preload runtime config before rendering anything
+    // This ensures config is cached before any components try to use getApiBase()
     getRuntimeConfig().then(() => {
       setConfigLoaded(true);
-    }).catch(() => {
-      setConfigLoaded(true); // Continue even if config fails
+      setIsLoading(false);
+    }).catch((error) => {
+      console.warn('Config loading failed, continuing with fallback:', error);
+      setConfigLoaded(true);
+      setIsLoading(false);
     });
   }, []);
 
@@ -41,7 +45,6 @@ function App() {
     // Check if token exists and is valid
     const token = localStorage.getItem('token');
     setAuthToken(token);
-    setIsLoading(false);
 
     // Listen for storage changes (logout in other tabs, etc.)
     const handleStorageChange = () => {

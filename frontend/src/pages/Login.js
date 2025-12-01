@@ -150,12 +150,18 @@ const Login = ({ onLoginSuccess }) => {
     try {
       // Load API base from runtime config.json with safe fallback
       const apiBase = await getApiBase();
+      
+      if (!apiBase) {
+        throw new Error('API base URL not configured');
+      }
+
       const response = await axios.post(
         `${apiBase}/api/auth/login`,
         {
           email: formData.email,
           password: formData.password
-        }
+        },
+        { timeout: 10000 } // 10 second timeout
       );
 
       // Store token in localStorage
@@ -170,7 +176,19 @@ const Login = ({ onLoginSuccess }) => {
       // Redirect to dashboard
       navigate('/dashboard');
     } catch (error) {
-      const errorText = error.response?.data?.error || 'Login failed. Please check your credentials.';
+      console.error('Login error:', error);
+      let errorText = 'Login failed. Please check your credentials.';
+      
+      if (error.response?.data?.error) {
+        errorText = error.response.data.error;
+      } else if (error.code === 'ECONNABORTED') {
+        errorText = 'Request timeout. Please check your internet connection.';
+      } else if (error.message === 'Network Error') {
+        errorText = 'Network error. Please check your internet connection and try again.';
+      } else if (error.message.includes('API base')) {
+        errorText = 'Configuration error. Please refresh the page and try again.';
+      }
+      
       setError(errorText);
     } finally {
       setLoading(false);
