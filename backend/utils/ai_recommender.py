@@ -1,14 +1,18 @@
 """
 AI-powered password recommendation utility
 """
-from openai import OpenAI
 import os
 import random
 import string
 from utils.password_analyzer import analyze_password_strength
 
-# Initialize OpenAI client with v1+ API
-client = OpenAI(api_key=os.environ.get('OPENAI_API_KEY', ''))
+# Initialize OpenAI client with v1+ API (lazy initialization to handle missing API key)
+try:
+    from openai import OpenAI
+    _openai_api_key = os.environ.get('OPENAI_API_KEY', '')
+    client = OpenAI(api_key=_openai_api_key) if _openai_api_key else None
+except Exception as e:
+    client = None
 
 def generate_recommendations(password):
     """
@@ -20,7 +24,7 @@ def generate_recommendations(password):
     Returns:
         list: List of recommendations
     """
-    if not client.api_key:
+    if not client:
         return get_default_recommendations()
     
     try:
@@ -194,8 +198,8 @@ def generate_ai_password_suggestions(count=3, length=16):
     Returns:
         list: List of generated passwords
     """
-    if not client.api_key:
-        # Fallback to random generation if no API key
+    if not client:
+        # Fallback to random generation if no API client
         return [generate_strong_password(length) for _ in range(count)]
     
     try:
