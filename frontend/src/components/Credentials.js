@@ -176,10 +176,6 @@ const ActionButtons = styled.div`
   margin-top: 1rem;
 `;
 
-const EditButton = styled(Button)`
-  background: #764ba2;
-`;
-
 const DeleteButton = styled(Button)`
   background: #ff6b6b;
 `;
