@@ -143,6 +143,16 @@ const SecondaryButton = styled(Button)`
   flex: 1;
 `;
 
+const GenerateButton = styled(Button)`
+  background: #06a77d;
+  flex: 1;
+  margin-bottom: 1rem;
+
+  &:hover:not(:disabled) {
+    background: #058b6f;
+  }
+`;
+
 const BreachAlert = styled.div`
   margin-top: 1rem;
   padding: 1rem;
@@ -161,6 +171,94 @@ const BreachSafe = styled.div`
   border-left: 4px solid #2e7d32;
 `;
 
+const CodeBlock = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  background-color: #2d3436;
+  border-radius: 6px;
+  margin-top: 0.75rem;
+  border: 1px solid #636e72;
+
+  code {
+    font-family: 'Courier New', monospace;
+    color: #00ff41;
+    font-size: 1.1rem;
+    word-break: break-all;
+    flex: 1;
+  }
+`;
+
+const CopyButton = styled.button`
+  background: #667eea;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  white-space: nowrap;
+  transition: background 0.3s;
+
+  &:hover {
+    background: #764ba2;
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+`;
+
+const WarningNote = styled.div`
+  background: #fff3cd;
+  border: 1px solid #ffc107;
+  color: #856404;
+  padding: 0.75rem;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  margin-top: 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+`;
+
+const RecommendationsList = styled.ul`
+  list-style: none;
+  padding: 0;
+  margin-top: 0.75rem;
+
+  li {
+    padding: 0.75rem;
+    margin-bottom: 0.5rem;
+    background: #f9f9f9;
+    border-left: 3px solid #667eea;
+    border-radius: 4px;
+    color: #555;
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+
+    &:before {
+      content: '✓';
+      color: #667eea;
+      font-weight: bold;
+      flex-shrink: 0;
+    }
+  }
+`;
+
+const AttemptsNote = styled.div`
+  background: #e3f2fd;
+  border: 1px solid #2196f3;
+  color: #1565c0;
+  padding: 0.75rem;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  margin-top: 0.75rem;
+`;
+
 function PasswordChecker() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -168,6 +266,43 @@ function PasswordChecker() {
   const [error, setError] = useState('');
   const [generatedPassword, setGeneratedPassword] = useState('');
   const [suggestionsRemaining, setSuggestionsRemaining] = useState(3);
+  const [copiedToClipboard, setCopiedToClipboard] = useState(false);
+  const [generatingPassword, setGeneratingPassword] = useState(false);
+
+  // Real-time password analysis as user types (auto-submit on each keystroke)
+  const analyzePassword = async (pwd) => {
+    if (!pwd || pwd.length < 3) {
+      setResult(null);
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem('token');
+      const apiBase = await getApiBase();
+      const response = await axios.post(
+        `${apiBase}/api/passwords/analyze`,
+        { password: pwd },
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          },
+          timeout: 5000
+        }
+      );
+      setResult(response.data);
+      setError('');
+    } catch (err) {
+      // Don't show error for real-time updates, only on explicit submit
+      console.log('Real-time analysis error:', err.message);
+    }
+  };
+
+  const handlePasswordChange = (e) => {
+    const newPassword = e.target.value;
+    setPassword(newPassword);
+    // Real-time updates as user modifies password
+    analyzePassword(newPassword);
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -209,6 +344,7 @@ function PasswordChecker() {
       return;
     }
 
+    setGeneratingPassword(true);
     try {
       const apiBase = await getApiBase();
       const response = await axios.post(
@@ -221,9 +357,18 @@ function PasswordChecker() {
       );
       setGeneratedPassword(response.data.generated_password);
       setSuggestionsRemaining(response.data.attempts_remaining);
+      setCopiedToClipboard(false);
     } catch (err) {
-      setError('Failed to generate password');
+      setError('Failed to generate password. Please try again.');
+    } finally {
+      setGeneratingPassword(false);
     }
+  };
+
+  const copyToClipboard = () => {
+    navigator.clipboard.writeText(generatedPassword);
+    setCopiedToClipboard(true);
+    setTimeout(() => setCopiedToClipboard(false), 2000);
   };
 
   return (
@@ -236,51 +381,60 @@ function PasswordChecker() {
             id="password"
             type="password"
             value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="Enter password to check"
+            onChange={handlePasswordChange}
+            placeholder="Enter password to check (real-time analysis)"
             disabled={loading}
           />
         </InputGroup>
         <Button type="submit" disabled={loading || !password}>
-          {loading ? 'Analyzing...' : 'Analyze Password'}
+          {loading ? 'Analyzing...' : 'Full Analysis (Submit)'}
         </Button>
       </Form>
 
       {error && <ErrorMessage>{error}</ErrorMessage>}
 
       {result && (
-        <ResultsDisplay result={result} onGeneratePassword={generateStrongPassword} suggestionsRemaining={suggestionsRemaining} />
+        <ResultsDisplay 
+          result={result} 
+          onGeneratePassword={generateStrongPassword} 
+          suggestionsRemaining={suggestionsRemaining}
+          generatingPassword={generatingPassword}
+        />
       )}
 
       {generatedPassword && (
         <ResultsCard>
           <h2>✅ Generated Strong Password</h2>
-          <p style={{ marginBottom: '1rem' }}>
-            <strong>Password:</strong>
-            <code style={{ display: 'block', padding: '0.5rem', backgroundColor: '#f5f5f5', borderRadius: '4px', marginTop: '0.5rem', wordBreak: 'break-all' }}>
-              {generatedPassword}
-            </code>
+          <p style={{ marginBottom: '0.5rem' }}>
+            <strong>Your Generated Password:</strong>
           </p>
-          <p style={{ color: '#666', fontSize: '0.9rem' }}>
-            This password is displayed but not saved. Copy it to a secure location or password manager.
-          </p>
-          <p style={{ color: '#999', fontSize: '0.85rem' }}>
-            Suggestions remaining this session: {suggestionsRemaining}
-          </p>
+          <CodeBlock>
+            <code>{generatedPassword}</code>
+            <CopyButton onClick={copyToClipboard}>
+              {copiedToClipboard ? '✓ Copied!' : '📋 Copy'}
+            </CopyButton>
+          </CodeBlock>
+          <WarningNote>
+            <span>ℹ️</span>
+            <span>This password is displayed but <strong>not saved</strong>. Copy it to your password manager or save it securely.</span>
+          </WarningNote>
+          <AttemptsNote>
+            💡 Generation attempts remaining this session: <strong>{suggestionsRemaining}</strong>
+          </AttemptsNote>
         </ResultsCard>
       )}
     </Container>
   );
 }
 
-function ResultsDisplay({ result, onGeneratePassword, suggestionsRemaining }) {
+function ResultsDisplay({ result, onGeneratePassword, suggestionsRemaining, generatingPassword }) {
   if (result.error) {
     return <ErrorMessage>{result.error}</ErrorMessage>;
   }
 
   return (
     <ResultsCard>
-      <h2>Analysis Results</h2>
+      <h2>📊 Analysis Results</h2>
 
       {result.strength && (
         <>
@@ -300,8 +454,8 @@ function ResultsDisplay({ result, onGeneratePassword, suggestionsRemaining }) {
           </p>
 
           {result.strength.feedback && (
-            <p style={{ marginTop: '1rem', fontStyle: 'italic', color: '#666' }}>
-              <strong>Feedback:</strong> {result.strength.feedback}
+            <p style={{ marginTop: '1rem', fontStyle: 'italic', color: '#666', backgroundColor: '#f5f5f5', padding: '0.75rem', borderRadius: '4px' }}>
+              💡 <strong>Feedback:</strong> {result.strength.feedback}
             </p>
           )}
         </>
@@ -325,19 +479,18 @@ function ResultsDisplay({ result, onGeneratePassword, suggestionsRemaining }) {
         </>
       )}
 
-      {result.recommendations && Array.isArray(result.recommendations) && (
+      {/* Recommendations as bullet-point list */}
+      {result.recommendations && Array.isArray(result.recommendations) && result.recommendations.length > 0 && (
         <div style={{ marginTop: '1.5rem' }}>
-          <strong>Recommendations:</strong>
-          <ul style={{ marginTop: '0.5rem' }}>
+          <h3 style={{ color: '#333', marginBottom: '0.75rem' }}>💡 Recommendations</h3>
+          <RecommendationsList>
             {result.recommendations.map((rec, idx) => (
-              <li key={idx} style={{ marginBottom: '0.5rem' }}>{rec}</li>
+              <li key={idx}>{rec}</li>
             ))}
-          </ul>
-          <ButtonGroup>
-            <SecondaryButton onClick={onGeneratePassword} disabled={suggestionsRemaining <= 0}>
-              🔄 Generate Strong Password ({suggestionsRemaining} left)
-            </SecondaryButton>
-          </ButtonGroup>
+          </RecommendationsList>
+          <GenerateButton onClick={onGeneratePassword} disabled={suggestionsRemaining <= 0 || generatingPassword}>
+            {generatingPassword ? '⏳ Generating...' : `🔄 Generate Strong Password (${suggestionsRemaining} attempts left)`}
+          </GenerateButton>
         </div>
       )}
     </ResultsCard>
