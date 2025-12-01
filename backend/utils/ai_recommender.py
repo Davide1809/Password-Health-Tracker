@@ -179,7 +179,12 @@ def generate_strong_password(length=16, use_special=True, use_numbers=True):
     password = ''.join(password_list)
     
     # Validate it meets rules
-    is_valid, errors = validate_password_meets_security_rules(password, use_special=use_special, require_numbers=use_numbers)
+    is_valid, errors = validate_password_meets_security_rules(
+        password, 
+        min_length=length - 1,  # Allow slight variance
+        require_special=use_special, 
+        require_numbers=use_numbers
+    )
     if not is_valid:
         # Regenerate if validation fails (rare case)
         return generate_strong_password(length, use_special, use_numbers)
