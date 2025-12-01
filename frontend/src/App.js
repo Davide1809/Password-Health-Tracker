@@ -29,11 +29,13 @@ function App() {
   useEffect(() => {
     // Preload runtime config before rendering anything
     // This ensures config is cached before any components try to use getApiBase()
-    getRuntimeConfig().then(() => {
+    console.log('App: Starting config initialization...');
+    getRuntimeConfig().then((config) => {
+      console.log('App: Config loaded successfully:', config);
       setConfigLoaded(true);
       setIsLoading(false);
     }).catch((error) => {
-      console.warn('Config loading failed, continuing with fallback:', error);
+      console.warn('App: Config loading failed, continuing with fallback:', error);
       setConfigLoaded(true);
       setIsLoading(false);
     });

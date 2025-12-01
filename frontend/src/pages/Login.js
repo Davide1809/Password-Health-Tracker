@@ -149,12 +149,16 @@ const Login = ({ onLoginSuccess }) => {
 
     try {
       // Load API base from runtime config.json with safe fallback
+      console.log('Login: Getting API base...');
       const apiBase = await getApiBase();
+      
+      console.log('Login: API base resolved to:', apiBase);
       
       if (!apiBase) {
         throw new Error('API base URL not configured');
       }
 
+      console.log('Login: Sending login request to:', `${apiBase}/api/auth/login`);
       const response = await axios.post(
         `${apiBase}/api/auth/login`,
         {
@@ -163,6 +167,8 @@ const Login = ({ onLoginSuccess }) => {
         },
         { timeout: 10000 } // 10 second timeout
       );
+
+      console.log('Login: Success, received token');
 
       // Store token in localStorage
       localStorage.setItem('token', response.data.token);
@@ -189,6 +195,7 @@ const Login = ({ onLoginSuccess }) => {
         errorText = 'Configuration error. Please refresh the page and try again.';
       }
       
+      console.error('Login error details:', errorText);
       setError(errorText);
     } finally {
       setLoading(false);
