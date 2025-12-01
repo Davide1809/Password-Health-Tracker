@@ -1,13 +1,14 @@
 """
 AI-powered password recommendation utility
 """
-import openai
+from openai import OpenAI
 import os
 import random
 import string
 from utils.password_analyzer import analyze_password_strength
 
-openai.api_key = os.environ.get('OPENAI_API_KEY', '')
+# Initialize OpenAI client with v1+ API
+client = OpenAI(api_key=os.environ.get('OPENAI_API_KEY', ''))
 
 def generate_recommendations(password):
     """
@@ -19,7 +20,7 @@ def generate_recommendations(password):
     Returns:
         list: List of recommendations
     """
-    if not openai.api_key:
+    if not client.api_key:
         return get_default_recommendations()
     
     try:
@@ -32,7 +33,7 @@ def generate_recommendations(password):
         
         Provide 3-5 specific recommendations."""
         
-        response = openai.ChatCompletion.create(
+        response = client.chat.completions.create(
             model='gpt-3.5-turbo',
             messages=[
                 {'role': 'system', 'content': 'You are a cybersecurity expert specializing in password security.'},
@@ -193,7 +194,7 @@ def generate_ai_password_suggestions(count=3, length=16):
     Returns:
         list: List of generated passwords
     """
-    if not openai.api_key:
+    if not client.api_key:
         # Fallback to random generation if no API key
         return [generate_strong_password(length) for _ in range(count)]
     
@@ -207,7 +208,7 @@ def generate_ai_password_suggestions(count=3, length=16):
         
         Format: Return ONLY the passwords, one per line, nothing else."""
         
-        response = openai.ChatCompletion.create(
+        response = client.chat.completions.create(
             model='gpt-3.5-turbo',
             messages=[
                 {'role': 'system', 'content': 'You are a cybersecurity expert. Generate only strong, random passwords.'},
