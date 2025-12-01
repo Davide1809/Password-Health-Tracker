@@ -120,9 +120,12 @@ jobs:
           gcloud run deploy password-tracker-backend \
             --image=${{ env.REGISTRY }}/${{ env.GCP_PROJECT_ID }}/password-tracker-backend:latest \
             --platform managed \
-            --region us-central1
+            --region us-central1 \
+            --set-env-vars=MONGO_URI="${{ secrets.MONGO_URI }}",JWT_SECRET_KEY="${{ secrets.JWT_SECRET_KEY }}",OPENAI_API_KEY="${{ secrets.OPENAI_API_KEY }}",CREDENTIAL_ENCRYPTION_KEY="${{ secrets.CREDENTIAL_ENCRYPTION_KEY }}" \
+            --allow-unauthenticated
           
           gcloud run deploy password-tracker-frontend \
             --image=${{ env.REGISTRY }}/${{ env.GCP_PROJECT_ID }}/password-tracker-frontend:latest \
             --platform managed \
-            --region us-central1
+            --region us-central1 \
+            --allow-unauthenticated
