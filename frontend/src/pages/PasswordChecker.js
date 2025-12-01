@@ -248,6 +248,93 @@ const AttemptsNote = styled.div`
   margin-top: 0.75rem;
 `;
 
+const SuggestionsContainer = styled.div`
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
+`;
+
+const SuggestionCard = styled.div`
+  background: #f5f5f5;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  padding: 1rem;
+  transition: transform 0.2s, box-shadow 0.2s;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  }
+
+  h4 {
+    margin: 0 0 0.5rem 0;
+    color: #333;
+    font-size: 0.9rem;
+  }
+
+  code {
+    display: block;
+    background: #2d3436;
+    color: #00ff41;
+    padding: 0.75rem;
+    border-radius: 4px;
+    margin: 0.5rem 0;
+    font-family: 'Courier New', monospace;
+    word-break: break-all;
+    font-size: 0.85rem;
+  }
+`;
+
+const StrengthBadge = styled.span`
+  display: inline-block;
+  padding: 0.25rem 0.5rem;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: bold;
+  background-color: ${props => {
+    if (props.score >= 3) return '#4CAF50';
+    if (props.score >= 2) return '#FFC107';
+    return '#FF6B6B';
+  }};
+  color: white;
+  margin-top: 0.5rem;
+`;
+
+const AIButton = styled(Button)`
+  background: #667eea;
+  flex: 1;
+  margin-bottom: 1rem;
+
+  &:hover:not(:disabled) {
+    background: #764ba2;
+  }
+`;
+
+const SecurityRulesBox = styled.div`
+  background: #f0f4ff;
+  border: 1px solid #667eea;
+  border-radius: 6px;
+  padding: 1rem;
+  margin-top: 1rem;
+  font-size: 0.9rem;
+
+  h4 {
+    margin: 0 0 0.5rem 0;
+    color: #667eea;
+  }
+
+  ul {
+    margin: 0;
+    padding-left: 1.5rem;
+    color: #555;
+
+    li {
+      margin: 0.25rem 0;
+    }
+  }
+`;
+
 function PasswordChecker() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -257,6 +344,9 @@ function PasswordChecker() {
   const [suggestionsRemaining, setSuggestionsRemaining] = useState(3);
   const [copiedToClipboard, setCopiedToClipboard] = useState(false);
   const [generatingPassword, setGeneratingPassword] = useState(false);
+  const [aiSuggestions, setAiSuggestions] = useState([]);
+  const [loadingAiSuggestions, setLoadingAiSuggestions] = useState(false);
+  const [showAiSuggestions, setShowAiSuggestions] = useState(false);
 
   // Real-time password analysis as user types (auto-submit on each keystroke)
   const analyzePassword = async (pwd) => {
@@ -299,6 +389,7 @@ function PasswordChecker() {
     setError('');
     setResult(null);
     setGeneratedPassword('');
+    setAiSuggestions([]);
 
     if (!password) {
       setError('Please enter a password');
@@ -347,6 +438,7 @@ function PasswordChecker() {
       setGeneratedPassword(response.data.generated_password);
       setSuggestionsRemaining(response.data.attempts_remaining);
       setCopiedToClipboard(false);
+      setShowAiSuggestions(false);
     } catch (err) {
       setError('Failed to generate password. Please try again.');
     } finally {
@@ -354,8 +446,35 @@ function PasswordChecker() {
     }
   };
 
-  const copyToClipboard = () => {
-    navigator.clipboard.writeText(generatedPassword);
+  const getAiSuggestions = async () => {
+    if (suggestionsRemaining <= 0) {
+      setError('Maximum suggestions reached. Refresh page to reset limit.');
+      return;
+    }
+
+    setLoadingAiSuggestions(true);
+    try {
+      const apiBase = await getApiBase();
+      const response = await axios.post(
+        `${apiBase}/api/ai/ai-suggestions`,
+        {
+          count: 3,
+          length: 16
+        }
+      );
+      setAiSuggestions(response.data.suggestions || []);
+      setSuggestionsRemaining(response.data.attempts_remaining);
+      setShowAiSuggestions(true);
+      setCopiedToClipboard(false);
+    } catch (err) {
+      setError('Failed to generate AI suggestions. Please try again.');
+    } finally {
+      setLoadingAiSuggestions(false);
+    }
+  };
+
+  const copyToClipboard = (text) => {
+    navigator.clipboard.writeText(text);
     setCopiedToClipboard(true);
     setTimeout(() => setCopiedToClipboard(false), 2000);
   };
@@ -386,8 +505,10 @@ function PasswordChecker() {
         <ResultsDisplay 
           result={result} 
           onGeneratePassword={generateStrongPassword} 
+          onGetAiSuggestions={getAiSuggestions}
           suggestionsRemaining={suggestionsRemaining}
           generatingPassword={generatingPassword}
+          loadingAiSuggestions={loadingAiSuggestions}
         />
       )}
 
@@ -399,7 +520,7 @@ function PasswordChecker() {
           </p>
           <CodeBlock>
             <code>{generatedPassword}</code>
-            <CopyButton onClick={copyToClipboard}>
+            <CopyButton onClick={() => copyToClipboard(generatedPassword)}>
               {copiedToClipboard ? '✓ Copied!' : '📋 Copy'}
             </CopyButton>
           </CodeBlock>
@@ -412,11 +533,51 @@ function PasswordChecker() {
           </AttemptsNote>
         </ResultsCard>
       )}
+
+      {showAiSuggestions && aiSuggestions.length > 0 && (
+        <ResultsCard>
+          <h2>🤖 AI-Generated Password Suggestions</h2>
+          <WarningNote>
+            <span>ℹ️</span>
+            <span>These passwords are AI-generated and <strong>not saved</strong>. Select one and copy to your password manager.</span>
+          </WarningNote>
+          <SuggestionsContainer>
+            {aiSuggestions.map((suggestion, idx) => (
+              <SuggestionCard key={idx}>
+                <h4>Suggestion {idx + 1}</h4>
+                <code>{suggestion.password}</code>
+                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <StrengthBadge score={suggestion.strength_score}>
+                    {suggestion.strength_level}
+                  </StrengthBadge>
+                  <button 
+                    onClick={() => copyToClipboard(suggestion.password)}
+                    style={{
+                      background: '#667eea',
+                      color: 'white',
+                      border: 'none',
+                      padding: '0.5rem 1rem',
+                      borderRadius: '4px',
+                      cursor: 'pointer',
+                      fontSize: '0.85rem'
+                    }}
+                  >
+                    📋 Copy
+                  </button>
+                </div>
+              </SuggestionCard>
+            ))}
+          </SuggestionsContainer>
+          <AttemptsNote style={{ marginTop: '1rem' }}>
+            💡 Attempts remaining this session: <strong>{suggestionsRemaining}</strong>
+          </AttemptsNote>
+        </ResultsCard>
+      )}
     </Container>
   );
 }
 
-function ResultsDisplay({ result, onGeneratePassword, suggestionsRemaining, generatingPassword }) {
+function ResultsDisplay({ result, onGeneratePassword, onGetAiSuggestions, suggestionsRemaining, generatingPassword, loadingAiSuggestions }) {
   if (result.error) {
     return <ErrorMessage>{result.error}</ErrorMessage>;
   }
@@ -477,9 +638,26 @@ function ResultsDisplay({ result, onGeneratePassword, suggestionsRemaining, gene
               <li key={idx}>{rec}</li>
             ))}
           </RecommendationsList>
-          <GenerateButton onClick={onGeneratePassword} disabled={suggestionsRemaining <= 0 || generatingPassword}>
-            {generatingPassword ? '⏳ Generating...' : `🔄 Generate Strong Password (${suggestionsRemaining} attempts left)`}
-          </GenerateButton>
+          
+          <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1rem', flexWrap: 'wrap' }}>
+            <GenerateButton onClick={onGeneratePassword} disabled={suggestionsRemaining <= 0 || generatingPassword}>
+              {generatingPassword ? '⏳ Generating...' : `🔄 Generate Strong Password (${suggestionsRemaining} left)`}
+            </GenerateButton>
+            <AIButton onClick={onGetAiSuggestions} disabled={suggestionsRemaining <= 0 || loadingAiSuggestions}>
+              {loadingAiSuggestions ? '⏳ Getting Suggestions...' : `🤖 Get AI Suggestions (${suggestionsRemaining} left)`}
+            </AIButton>
+          </div>
+
+          <SecurityRulesBox>
+            <h4>🔐 Security Requirements Met</h4>
+            <ul>
+              <li>✓ Minimum 12 characters</li>
+              <li>✓ Uppercase letters (A-Z)</li>
+              <li>✓ Lowercase letters (a-z)</li>
+              <li>✓ Numbers (0-9)</li>
+              <li>✓ Special characters (!@#$%...)</li>
+            </ul>
+          </SecurityRulesBox>
         </div>
       )}
     </ResultsCard>

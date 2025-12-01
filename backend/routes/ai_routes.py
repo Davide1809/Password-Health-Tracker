@@ -2,7 +2,12 @@
 AI-powered password recommendation routes
 """
 from flask import Blueprint, request, jsonify, session
-from utils.ai_recommender import generate_recommendations, generate_strong_password
+from utils.ai_recommender import (
+    generate_recommendations, 
+    generate_strong_password,
+    validate_password_meets_security_rules,
+    generate_ai_password_suggestions
+)
 from utils.password_analyzer import analyze_password_strength
 import os
 
@@ -66,15 +71,23 @@ def generate_password():
         use_special = data.get('use_special', True)
         use_numbers = data.get('use_numbers', True)
         
-        # Validate length
-        if length < 8 or length > 32:
+        # Validate length (12-32)
+        if length < 12 or length > 32:
             length = 16
         
-        # Generate strong password
+        # Generate strong password meeting security rules
         new_password = generate_strong_password(
             length=length,
             use_special=use_special,
             use_numbers=use_numbers
+        )
+        
+        # Validate password meets security rules
+        is_valid, validation_errors = validate_password_meets_security_rules(
+            new_password,
+            min_length=12,
+            require_special=use_special,
+            require_numbers=use_numbers
         )
         
         # Analyze generated password
@@ -85,12 +98,81 @@ def generate_password():
             'strength_score': analysis['score'],
             'strength_level': analysis['strength'],
             'entropy': analysis['entropy'],
+            'meets_security_rules': is_valid,
+            'validation_errors': validation_errors if not is_valid else [],
             'attempts_remaining': 3 - suggestion_attempts[client_id],
             'note': 'This password is displayed but not saved. Copy it to your preferred location.'
         }), 200
     
     except Exception as e:
         return jsonify({'error': f'Failed to generate password: {str(e)}'}), 500
+
+@bp.route('/ai-suggestions', methods=['POST'])
+def get_ai_suggestions():
+    """Get multiple AI-driven password suggestions"""
+    try:
+        data = request.get_json() if request.get_json() else {}
+        
+        # Get session ID for tracking attempts
+        client_id = request.remote_addr + str(request.headers.get('User-Agent', ''))
+        
+        # Track attempts per session
+        if client_id not in suggestion_attempts:
+            suggestion_attempts[client_id] = 0
+        
+        suggestion_attempts[client_id] += 1
+        
+        # Limit to 3 suggestion requests per session
+        if suggestion_attempts[client_id] > 3:
+            return jsonify({
+                'error': 'Maximum suggestions reached (3 per session)',
+                'message': 'Please refresh to reset suggestion limit'
+            }), 429
+        
+        # Get parameters
+        count = data.get('count', 3)
+        length = data.get('length', 16)
+        
+        # Validate count and length
+        if count < 1 or count > 5:
+            count = 3
+        if length < 12 or length > 32:
+            length = 16
+        
+        # Generate AI-driven suggestions
+        suggestions = generate_ai_password_suggestions(count=count, length=length)
+        
+        # Analyze each suggestion
+        analyzed_suggestions = []
+        for pwd in suggestions:
+            analysis = analyze_password_strength(pwd)
+            is_valid, errors = validate_password_meets_security_rules(pwd, min_length=12)
+            
+            analyzed_suggestions.append({
+                'password': pwd,
+                'strength_score': analysis['score'],
+                'strength_level': analysis['strength'],
+                'entropy': analysis['entropy'],
+                'meets_security_rules': is_valid,
+                'validation_errors': errors if not is_valid else []
+            })
+        
+        return jsonify({
+            'suggestions': analyzed_suggestions,
+            'count': len(analyzed_suggestions),
+            'attempts_remaining': 3 - suggestion_attempts[client_id],
+            'note': 'Passwords are AI-generated and not saved. Copy to your password manager or save securely.',
+            'security_requirements': {
+                'minimum_length': 12,
+                'requires_uppercase': True,
+                'requires_lowercase': True,
+                'requires_numbers': True,
+                'requires_special': True
+            }
+        }), 200
+    
+    except Exception as e:
+        return jsonify({'error': f'Failed to generate AI suggestions: {str(e)}'}), 500
 
 @bp.route('/verify-strength', methods=['POST'])
 def verify_strength():
@@ -106,6 +188,9 @@ def verify_strength():
         # Comprehensive analysis
         analysis = analyze_password_strength(password)
         
+        # Validate against security rules
+        is_valid, validation_errors = validate_password_meets_security_rules(password, min_length=12)
+        
         return jsonify({
             'password_length': len(password),
             'strength': analysis['strength'],
@@ -113,7 +198,16 @@ def verify_strength():
             'entropy': analysis['entropy'],
             'crack_time': analysis['crack_time'],
             'characteristics': analysis['characteristics'],
-            'recommendations': analysis.get('recommendations', [])[:5]  # Top 5
+            'recommendations': analysis.get('recommendations', [])[:5],  # Top 5
+            'meets_security_rules': is_valid,
+            'validation_errors': validation_errors if not is_valid else [],
+            'security_requirements': {
+                'minimum_length': 12,
+                'requires_uppercase': True,
+                'requires_lowercase': True,
+                'requires_numbers': True,
+                'requires_special': True
+            }
         }), 200
     
     except Exception as e:
