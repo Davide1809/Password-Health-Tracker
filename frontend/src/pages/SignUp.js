@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { getApiBase, getRuntimeConfig } from '../config';
 
 const Container = styled.div`
   display: flex;
@@ -163,6 +164,16 @@ const SignUp = () => {
   const [message, setMessage] = useState({ type: '', text: '' });
   const [loading, setLoading] = useState(false);
 
+  // Ensure config is initialized when component mounts
+  useEffect(() => {
+    console.log('📝 SignUp component mounted, ensuring config is ready...');
+    getRuntimeConfig().then(() => {
+      console.log('📝 Config ready on SignUp component mount');
+    }).catch((err) => {
+      console.warn('📝 Config initialization error (will use fallback):', err);
+    });
+  }, []);
+
   // Password strength requirements
   const passwordRequirements = {
     length: formData.password.length >= 8,
@@ -233,8 +244,13 @@ const SignUp = () => {
     setMessage({ type: '', text: '' });
 
     try {
+      console.log('📝 Getting API base for registration...');
+      const apiBase = await getApiBase();
+      console.log('📝 API base resolved to:', apiBase);
+      
+      console.log('📝 Sending registration request to:', `${apiBase}/api/auth/register`);
       await axios.post(
-        `${process.env.REACT_APP_API_URL || 'http://localhost:5001'}/api/auth/register`,
+        `${apiBase}/api/auth/register`,
         {
           name: formData.name,
           email: formData.email,
@@ -242,6 +258,7 @@ const SignUp = () => {
         }
       );
 
+      console.log('📝 Registration successful');
       setMessage({
         type: 'success',
         text: 'Account created successfully! Redirecting to login...'
@@ -255,6 +272,7 @@ const SignUp = () => {
         navigate('/login');
       }, 2000);
     } catch (error) {
+      console.error('📝 Registration error:', error);
       const errorText = error.response?.data?.error || 'Registration failed. Please try again.';
       setMessage({
         type: 'error',
