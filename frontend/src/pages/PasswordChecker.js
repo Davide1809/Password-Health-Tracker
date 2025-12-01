@@ -336,6 +336,7 @@ function PasswordChecker() {
   const [generatingPassword, setGeneratingPassword] = useState(false);
   const [aiSuggestions, setAiSuggestions] = useState([]);
   const [showAiSuggestions, setShowAiSuggestions] = useState(false);
+  const [generateAttempts, setGenerateAttempts] = useState(0);  // Track attempts locally
 
   // Real-time password analysis as user types (auto-submit on each keystroke)
   const analyzePassword = async (pwd) => {
@@ -408,8 +409,17 @@ function PasswordChecker() {
   };
 
   const generateStrongPassword = async () => {
+    // Check if attempts exceeded (3 per page visit)
+    if (generateAttempts >= 3) {
+      setError('You have reached the limit of 3 password generations. Navigate away and come back to reset.');
+      return;
+    }
+
     setGeneratingPassword(true);
     try {
+      // Increment attempts
+      setGenerateAttempts(generateAttempts + 1);
+      
       const token = localStorage.getItem('token');
       const apiBase = await getApiBase();
       const response = await axios.post(
@@ -433,6 +443,7 @@ function PasswordChecker() {
       setSuggestionsRemaining(response.data.attempts_remaining);
       setCopiedToClipboard(false);
       setShowAiSuggestions(false);
+      setError('');  // Clear error on success
     } catch (err) {
       setError('Failed to generate password. Please try again.');
     } finally {
@@ -475,6 +486,7 @@ function PasswordChecker() {
           onGeneratePassword={generateStrongPassword}
           suggestionsRemaining={suggestionsRemaining}
           generatingPassword={generatingPassword}
+          generateAttempts={generateAttempts}
         />
       )}
 
@@ -540,7 +552,7 @@ function PasswordChecker() {
   );
 }
 
-function ResultsDisplay({ result, password, onGeneratePassword, suggestionsRemaining, generatingPassword }) {
+function ResultsDisplay({ result, password, onGeneratePassword, suggestionsRemaining, generatingPassword, generateAttempts }) {
   if (result.error) {
     return <ErrorMessage>{result.error}</ErrorMessage>;
   }
@@ -615,8 +627,8 @@ function ResultsDisplay({ result, password, onGeneratePassword, suggestionsRemai
       {/* Password Generation Button - Always show after analysis */}
       <div style={{ marginTop: '1.5rem' }}>
         <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
-          <GenerateButton onClick={onGeneratePassword} disabled={generatingPassword}>
-            {generatingPassword ? '⏳ Generating...' : '💪 Generate Strong Password'}
+          <GenerateButton onClick={onGeneratePassword} disabled={generateAttempts >= 3 || generatingPassword}>
+            {generatingPassword ? '⏳ Generating...' : `💪 Generate Strong Password (${3 - generateAttempts} left)`}
           </GenerateButton>
         </div>
 
