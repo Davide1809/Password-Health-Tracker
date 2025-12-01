@@ -301,16 +301,6 @@ const StrengthBadge = styled.span`
   margin-top: 0.5rem;
 `;
 
-const AIButton = styled(Button)`
-  background: #667eea;
-  flex: 1;
-  margin-bottom: 1rem;
-
-  &:hover:not(:disabled) {
-    background: #764ba2;
-  }
-`;
-
 const SecurityRulesBox = styled.div`
   background: #f0f4ff;
   border: 1px solid #667eea;
@@ -345,7 +335,6 @@ function PasswordChecker() {
   const [copiedToClipboard, setCopiedToClipboard] = useState(false);
   const [generatingPassword, setGeneratingPassword] = useState(false);
   const [aiSuggestions, setAiSuggestions] = useState([]);
-  const [loadingAiSuggestions, setLoadingAiSuggestions] = useState(false);
   const [showAiSuggestions, setShowAiSuggestions] = useState(false);
 
   // Real-time password analysis as user types (auto-submit on each keystroke)
