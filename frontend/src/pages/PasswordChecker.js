@@ -503,7 +503,8 @@ function PasswordChecker() {
 
       {result && (
         <ResultsDisplay 
-          result={result} 
+          result={result}
+          password={password}
           onGeneratePassword={generateStrongPassword} 
           onGetAiSuggestions={getAiSuggestions}
           suggestionsRemaining={suggestionsRemaining}
@@ -577,10 +578,18 @@ function PasswordChecker() {
   );
 }
 
-function ResultsDisplay({ result, onGeneratePassword, onGetAiSuggestions, suggestionsRemaining, generatingPassword, loadingAiSuggestions }) {
+function ResultsDisplay({ result, password, onGeneratePassword, onGetAiSuggestions, suggestionsRemaining, generatingPassword, loadingAiSuggestions }) {
   if (result.error) {
     return <ErrorMessage>{result.error}</ErrorMessage>;
   }
+
+  // Validate password against security requirements
+  const hasMinLength = password.length >= 12;
+  const hasUppercase = /[A-Z]/.test(password);
+  const hasLowercase = /[a-z]/.test(password);
+  const hasNumbers = /[0-9]/.test(password);
+  const hasSpecial = /[!@#$%^&*()_+\-=[\]{};:'",.<>?/\\|`~]/.test(password);
+  const meetsAllRequirements = hasMinLength && hasUppercase && hasLowercase && hasNumbers && hasSpecial;
 
   return (
     <ResultsCard>
@@ -653,13 +662,13 @@ function ResultsDisplay({ result, onGeneratePassword, onGetAiSuggestions, sugges
         </div>
 
         <SecurityRulesBox>
-          <h4>🔐 Security Requirements Met</h4>
+          <h4>🔐 Security Requirements {meetsAllRequirements ? '✅' : '⚠️'}</h4>
           <ul>
-            <li>✓ Minimum 12 characters</li>
-            <li>✓ Uppercase letters (A-Z)</li>
-            <li>✓ Lowercase letters (a-z)</li>
-            <li>✓ Numbers (0-9)</li>
-            <li>✓ Special characters (!@#$%...)</li>
+            <li>{hasMinLength ? '✅' : '❌'} Minimum 12 characters (current: {password.length})</li>
+            <li>{hasUppercase ? '✅' : '❌'} Uppercase letters (A-Z)</li>
+            <li>{hasLowercase ? '✅' : '❌'} Lowercase letters (a-z)</li>
+            <li>{hasNumbers ? '✅' : '❌'} Numbers (0-9)</li>
+            <li>{hasSpecial ? '✅' : '❌'} Special characters (!@#$%...)</li>
           </ul>
         </SecurityRulesBox>
       </div>

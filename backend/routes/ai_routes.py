@@ -48,6 +48,9 @@ def get_recommendations():
 def generate_password():
     """Generate a strong password using AI"""
     try:
+        import logging
+        logger = logging.getLogger(__name__)
+        
         data = request.get_json() if request.get_json() else {}
         
         # Get session ID for tracking attempts
@@ -58,6 +61,8 @@ def generate_password():
             suggestion_attempts[client_id] = 0
         
         suggestion_attempts[client_id] += 1
+        
+        logger.info(f'🔄 Password generation request - attempt {suggestion_attempts[client_id]} for client {client_id}')
         
         # Limit to 3 suggestions per session
         if suggestion_attempts[client_id] > 3:
@@ -71,6 +76,8 @@ def generate_password():
         use_special = data.get('use_special', True)
         use_numbers = data.get('use_numbers', True)
         
+        logger.info(f'🔄 Generating password: length={length}, special={use_special}, numbers={use_numbers}')
+        
         # Validate length (12-32)
         if length < 12 or length > 32:
             length = 16
@@ -82,6 +89,8 @@ def generate_password():
             use_numbers=use_numbers
         )
         
+        logger.info(f'🔄 Password generated, analyzing strength...')
+        
         # Validate password meets security rules
         is_valid, validation_errors = validate_password_meets_security_rules(
             new_password,
@@ -92,6 +101,8 @@ def generate_password():
         
         # Analyze generated password
         analysis = analyze_password_strength(new_password)
+        
+        logger.info(f'✅ Password generation successful - valid={is_valid}, score={analysis["score"]}')
         
         return jsonify({
             'generated_password': new_password,
@@ -105,12 +116,18 @@ def generate_password():
         }), 200
     
     except Exception as e:
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(f'🔄 Password generation error: {str(e)}', exc_info=True)
         return jsonify({'error': f'Failed to generate password: {str(e)}'}), 500
 
 @bp.route('/ai-suggestions', methods=['POST'])
 def get_ai_suggestions():
     """Get multiple AI-driven password suggestions"""
     try:
+        import logging
+        logger = logging.getLogger(__name__)
+        
         data = request.get_json() if request.get_json() else {}
         
         # Get session ID for tracking attempts
@@ -121,6 +138,8 @@ def get_ai_suggestions():
             suggestion_attempts[client_id] = 0
         
         suggestion_attempts[client_id] += 1
+        
+        logger.info(f'🤖 AI suggestions request - attempt {suggestion_attempts[client_id]} for client {client_id}')
         
         # Limit to 3 suggestion requests per session
         if suggestion_attempts[client_id] > 3:
@@ -133,6 +152,8 @@ def get_ai_suggestions():
         count = data.get('count', 3)
         length = data.get('length', 16)
         
+        logger.info(f'🤖 AI parameters - count={count}, length={length}')
+        
         # Validate count and length
         if count < 1 or count > 5:
             count = 3
@@ -141,6 +162,8 @@ def get_ai_suggestions():
         
         # Generate AI-driven suggestions
         suggestions = generate_ai_password_suggestions(count=count, length=length)
+        
+        logger.info(f'🤖 Generated {len(suggestions)} suggestions')
         
         # Analyze each suggestion
         analyzed_suggestions = []
@@ -157,6 +180,8 @@ def get_ai_suggestions():
                 'validation_errors': errors if not is_valid else []
             })
         
+        logger.info(f'✅ AI suggestions completed successfully')
+        
         return jsonify({
             'suggestions': analyzed_suggestions,
             'count': len(analyzed_suggestions),
@@ -172,6 +197,9 @@ def get_ai_suggestions():
         }), 200
     
     except Exception as e:
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(f'🤖 AI suggestions error: {str(e)}', exc_info=True)
         return jsonify({'error': f'Failed to generate AI suggestions: {str(e)}'}), 500
 
 @bp.route('/verify-strength', methods=['POST'])
