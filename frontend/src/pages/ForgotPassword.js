@@ -330,7 +330,7 @@ function ForgotPassword() {
             <FormGroup>
               <Label>Please answer your security question:</Label>
               <QuestionDisplay>
-                {securityQuestion || '...'}
+                🔐 Answer the security question you provided during account signup
               </QuestionDisplay>
               <Label htmlFor="securityAnswer">Your Answer</Label>
               <Input
