@@ -139,8 +139,6 @@ function ForgotPassword() {
   const [step, setStep] = useState('email'); // 'email', 'security', or 'reset'
   const [email, setEmail] = useState('');
   const [securityAnswer, setSecurityAnswer] = useState('');
-  const [securityQuestion, setSecurityQuestion] = useState('');
-  const [securityQuestionId, setSecurityQuestionId] = useState(null);
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [errors, setErrors] = useState({});
@@ -174,7 +172,7 @@ function ForgotPassword() {
     try {
       const apiBase = await getApiBase();
       // First, verify the email exists and get the question
-      const response = await axios.post(
+      await axios.post(
         `${apiBase}/api/auth/forgot-password`,
         { email }
       );
@@ -207,7 +205,7 @@ function ForgotPassword() {
     setLoading(true);
     try {
       const apiBase = await getApiBase();
-      const response = await axios.post(
+      const securityTokenResponse = await axios.post(
         `${apiBase}/api/auth/verify-security-answer`,
         {
           email: email,
@@ -216,7 +214,7 @@ function ForgotPassword() {
       );
 
       // Store security token for password reset
-      setSecurityToken(response.data.security_token);
+      setSecurityToken(securityTokenResponse.data.security_token);
       
       setMessage({
         type: 'success',
