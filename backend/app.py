@@ -41,7 +41,25 @@ if not os.environ.get('CREDENTIAL_ENCRYPTION_KEY'):
                    'For production, set CREDENTIAL_ENCRYPTION_KEY environment variable.')
 
 # Initialize extensions
-CORS(app)
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
+
+# Configure CORS with restricted origins
+allowed_origins = os.environ.get('ALLOWED_ORIGINS', 'http://localhost:3000').split(',')
+CORS(app, resources={
+    r"/api/*": {
+        "origins": allowed_origins,
+        "allow_headers": ["Content-Type", "Authorization"],
+        "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
+    }
+})
+
+# Initialize rate limiter
+limiter = Limiter(
+    app=app,
+    key_func=get_remote_address,
+    default_limits=["200 per day", "50 per hour"]
+)
 
 # Initialize Flask-Mail for email sending
 email_sender.init_mail(app)
@@ -55,8 +73,9 @@ except Exception as e:
     logger.error(f'Failed to initialize MongoDB: {e}')
     mongo = None
 
-# Inject mongo into routes
+# Inject mongo and limiter into routes
 auth_routes.set_mongo(mongo)
+auth_routes.set_limiter(limiter)
 credentials_routes.set_mongo(mongo)
 security_questions_routes.set_mongo(mongo)
 

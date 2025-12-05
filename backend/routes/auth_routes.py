@@ -20,11 +20,17 @@ bp = Blueprint('auth', __name__, url_prefix='/api/auth')
 
 # Get MongoDB instance (will be injected from app)
 mongo = None
+limiter = None
 
 def set_mongo(mongo_instance):
     """Set the MongoDB instance for routes"""
     global mongo
     mongo = mongo_instance
+
+def set_limiter(limiter_instance):
+    """Set the rate limiter instance for routes"""
+    global limiter
+    limiter = limiter_instance
 
 
 def validate_email(email: str) -> bool:
@@ -74,7 +80,17 @@ def validate_password_strength(password: str) -> tuple:
     return True, None
 
 
+def apply_rate_limit(limit_string):
+    """Apply rate limit if limiter is available"""
+    def decorator(f):
+        if limiter:
+            return limiter.limit(limit_string)(f)
+        return f
+    return decorator
+
+
 @bp.route('/register', methods=['POST'])
+@apply_rate_limit("5 per hour")
 def register():
     """Register a new user with security question setup"""
     try:
@@ -146,6 +162,7 @@ def register():
 
 
 @bp.route('/login', methods=['POST', 'OPTIONS'])
+@apply_rate_limit("5 per 15 minutes")
 def login():
     """Login user and return JWT token"""
     try:
@@ -229,6 +246,7 @@ def logout():
 
 
 @bp.route('/forgot-password', methods=['POST'])
+@apply_rate_limit("3 per hour")
 def forgot_password():
     """Request password reset - sends reset link to email"""
     try:
@@ -298,6 +316,7 @@ def forgot_password():
 
 
 @bp.route('/reset-password', methods=['POST'])
+@apply_rate_limit("5 per hour")
 def reset_password():
     """Reset password using valid reset token"""
     try:
